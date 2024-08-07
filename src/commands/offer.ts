@@ -76,7 +76,7 @@ export default {
       });
     }
 
-    const data = await getOffer(id.value?.toString() || '');
+    const data = await getOffer(id.value?.toString() || '').catch(() => null);
 
     if (!data) {
       return interaction.reply({
@@ -85,7 +85,7 @@ export default {
       });
     }
 
-    const offerMedia = await getOfferMedia(data);
+    const offerMedia = await getOfferMedia(data).catch(() => null);
 
     const allGenres = await genres();
 
@@ -126,7 +126,7 @@ export default {
           inline: true,
         },
         {
-          name: 'Last Updated',
+          name: 'Last Modified',
           value: `<t:${Math.floor(
             new Date(data.lastModifiedDate).getTime() / 1000
           )}:R>`,
@@ -194,7 +194,9 @@ export default {
     // @ts-expect-error
     return interaction.respond(
       results.slice(0, 5).map((result: any) => ({
-        name: result.title,
+        name: `${result.title} (${
+          offersDictionary[result.offerType] ?? result.offerType
+        })`,
         value: result.id,
       }))
     );
