@@ -6,7 +6,7 @@ COPY . /app
 WORKDIR /app
 
 # Install curl, git and python3
-RUN apt-get update && apt-get install -y curl git python3
+RUN apt-get update && apt-get install -y curl git python3 make
 
 FROM base AS prod-deps
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
