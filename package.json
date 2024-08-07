@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"pnpm run watch\" \"pnpm run start\"",
     "watch": "tsc -w",
-    "build": "parcel build",
+    "build": "tsc",
     "start": "node dist/deploy.js && node --watch dist/index.js"
   },
   "keywords": [],
