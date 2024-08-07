@@ -113,6 +113,12 @@ export default {
           value: offersDictionary[data.offerType] ?? data.offerType,
           inline: true,
         },
+        {
+          name: 'Last Updated',
+          value: `t:<t:${Math.floor(
+            new Date(data.lastModifiedDate).getTime() / 1000
+          )}:f>`,
+        },
       ])
       .setColor(0x00ff00)
       .setAuthor({
