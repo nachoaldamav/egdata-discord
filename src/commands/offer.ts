@@ -115,7 +115,7 @@ export default {
         },
         {
           name: 'Last Updated',
-          value: `t:<${Math.floor(
+          value: `<t:${Math.floor(
             new Date(data.lastModifiedDate).getTime() / 1000
           )}:R>`,
         },
