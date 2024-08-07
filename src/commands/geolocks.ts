@@ -63,7 +63,6 @@ export default {
 
     const embed = new EmbedBuilder()
       .setTitle(data.title)
-      .setDescription('Restricted countries')
       .setURL(
         `https://egdata.app/offers/${data.id}?utm_source=discord&utm_medium=bot&utm_campaign=offer`
       )
@@ -86,9 +85,6 @@ export default {
           : []),
       ])
       .setColor(0x00ff00)
-      .setAuthor({
-        name: data.seller.name,
-      })
       .setFooter({
         text: 'Check more offers on EGData.app',
         iconURL: 'https://cdn.discordapp.com/emojis/1226575784479686738.webp',
