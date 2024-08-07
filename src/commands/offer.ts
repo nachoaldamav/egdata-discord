@@ -125,7 +125,11 @@ export default {
       .setTimestamp(new Date(data.effectiveDate));
 
     const images = (offerMedia?.images ?? []).map((image) =>
-      new EmbedBuilder().setColor(0x00ff00).setImage(image.src)
+      new EmbedBuilder()
+        .setURL(
+          `https://egdata.app/offers/${data.id}?utm_source=discord&utm_medium=bot&utm_campaign=offer`
+        )
+        .setImage(image.src)
     );
 
     return interaction.reply({
