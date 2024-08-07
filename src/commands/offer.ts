@@ -105,19 +105,22 @@ export default {
           'DieselGameBoxTall',
           'DieselStoreFrontTall',
           'OfferImageTall',
-        ])?.url ?? 'https://egdata.app/placeholder.webp'
+        ])?.url.replaceAll(' ', '%20') ?? 'https://egdata.app/placeholder.webp'
       )
       .addFields([
         {
           name: 'Genres',
-          value: offerGenres
-            .map((genre: Genre | undefined) => {
-              if (genre) {
-                return `[${genre.name}](https://egdata.app/search?tags=${genre.id})`;
-              }
-              return '';
-            })
-            .join(', '),
+          value:
+            offerGenres.length > 0
+              ? offerGenres
+                  .map((genre: Genre | undefined) => {
+                    if (genre) {
+                      return `[${genre.name}](https://egdata.app/search?tags=${genre.id})`;
+                    }
+                    return '';
+                  })
+                  .join(', ')
+              : 'No genres',
           inline: true,
         },
         {
@@ -137,8 +140,8 @@ export default {
         name: data.seller.name,
       })
       .setFooter({
-        text: 'Check more offers on EGData.app',
-        iconURL: 'https://cdn.discordapp.com/emojis/1226575784479686738.webp',
+        text: 'Check more offers on egdata.app',
+        iconURL: 'https://egdata.app/logo_simple_white.png',
       })
       .setTimestamp(new Date(data.effectiveDate));
 
@@ -150,29 +153,25 @@ export default {
         .setImage(image.src)
     );
 
-    const videos = (offerMedia?.videos ?? [])
-      .map((video) => {
-        const videoUrl = video.outputs
-          .filter((output) => output.contentType.startsWith('video/'))
-          .sort((a, b) => b.width - a.width)
-          .find((output) => output.contentType === 'video/webm')?.url;
-
-        console.log('Video URL:', videoUrl);
-
-        if (!videoUrl) {
-          return null;
-        }
-
-        return new EmbedBuilder()
+    if (images.length > 3) {
+      images.unshift(
+        new EmbedBuilder()
           .setURL(
             `https://egdata.app/offers/${data.id}?utm_source=discord&utm_medium=bot&utm_campaign=offer`
           )
-          .setDescription(videoUrl);
-      })
-      .filter((video) => video) as EmbedBuilder[];
+          .setImage(
+            getImage(data.keyImages, [
+              'CodeRedemption_340x440',
+              'DieselGameBoxTall',
+              'DieselStoreFrontTall',
+              'OfferImageTall',
+            ])?.url ?? 'https://egdata.app/placeholder.webp'
+          )
+      );
+    }
 
     return interaction.reply({
-      embeds: [embed, ...images.slice(0, 3), ...videos.slice(0, 3)],
+      embeds: [embed, ...images.slice(0, 3)],
     });
   },
 

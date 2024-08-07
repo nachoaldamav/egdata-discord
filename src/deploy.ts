@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { clientId, guildId, token } from './config.js';
+import { clientId, token } from './config.js';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,9 +35,7 @@ const rest = new REST().setToken(token);
   try {
     console.log('Started refreshing application (/) commands.');
 
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-      body: commands,
-    });
+    await rest.put(Routes.applicationCommands(clientId), { body: commands });
 
     console.log('Successfully reloaded application (/) commands.');
   } catch (error) {
