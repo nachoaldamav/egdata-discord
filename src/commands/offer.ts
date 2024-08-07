@@ -3,12 +3,11 @@ import {
   type CommandInteraction,
   EmbedBuilder,
 } from 'discord.js';
-// import { dedent } from 'ts-dedent';
 import type { SingleOffer } from '../types/offers.js';
 import { getImage } from '../utils/get-image.js';
 import { client } from '../utils/client.js';
 import { offersDictionary } from '../utils/offer-types.js';
-import { Genre, genres } from '../utils/genres.js';
+import { type Genre, genres } from '../utils/genres.js';
 
 const search = async (query: string) => {
   const data = await client
@@ -126,9 +125,7 @@ export default {
       .setTimestamp(new Date(data.effectiveDate));
 
     const images = (offerMedia?.images ?? []).map((image) =>
-      new EmbedBuilder()
-        .setURL(`https://egdata.app/offers/${data.id}`)
-        .setImage(image.src)
+      new EmbedBuilder().setColor(0x00ff00).setImage(image.src)
     );
 
     return interaction.reply({
