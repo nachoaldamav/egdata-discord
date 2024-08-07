@@ -7,7 +7,6 @@ WORKDIR /app
 
 # Install curl, git and python3
 RUN apt-get update && apt-get install -y build-essential curl git python3
-RUN pnpm setup
 RUN pnpm add -g node-gyp
 
 FROM base AS prod-deps
