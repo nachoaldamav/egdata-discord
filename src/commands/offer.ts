@@ -38,6 +38,18 @@ const getOfferMedia = (offer: SingleOffer) => {
         _id: string;
         src: string;
       }[];
+      videos: {
+        _id: string;
+        outputs: {
+          duration: number;
+          url: string;
+          width: number;
+          height: number;
+          key: string;
+          contentType: string;
+          _id: string;
+        }[];
+      }[];
     }>(`/offers/${offer.id}/media`)
     .then((res) => res.data)
     .catch(() => null);
@@ -138,8 +150,26 @@ export default {
         .setImage(image.src)
     );
 
+    const videos = (offerMedia?.videos ?? [])
+      .map((video) => {
+        const videoUrl = video.outputs
+          .sort((a, b) => b.width - a.width)
+          .find((output) => output.contentType === 'video/webm')?.url;
+
+        if (!videoUrl) {
+          return null;
+        }
+
+        return new EmbedBuilder()
+          .setURL(
+            `https://egdata.app/offers/${data.id}?utm_source=discord&utm_medium=bot&utm_campaign=offer`
+          )
+          .setDescription(videoUrl);
+      })
+      .filter((video) => video) as EmbedBuilder[];
+
     return interaction.reply({
-      embeds: [embed, ...images.slice(0, 3)],
+      embeds: [embed, ...images.slice(0, 3), ...videos.slice(0, 3)],
     });
   },
 
