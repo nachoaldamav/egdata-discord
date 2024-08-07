@@ -115,9 +115,9 @@ export default {
         },
         {
           name: 'Last Updated',
-          value: `t:<t:${Math.floor(
+          value: `t:<${Math.floor(
             new Date(data.lastModifiedDate).getTime() / 1000
-          )}:f>`,
+          )}:R>`,
         },
       ])
       .setColor(0x00ff00)
