@@ -153,8 +153,11 @@ export default {
     const videos = (offerMedia?.videos ?? [])
       .map((video) => {
         const videoUrl = video.outputs
+          .filter((output) => output.contentType.startsWith('video/'))
           .sort((a, b) => b.width - a.width)
           .find((output) => output.contentType === 'video/webm')?.url;
+
+        console.log('Video URL:', videoUrl);
 
         if (!videoUrl) {
           return null;
