@@ -65,7 +65,7 @@ export default {
 
       const repeatedText =
         freebie.giveaway.historical.length > 1
-          ? `(${freebie.giveaway.historical.length - 1} times)`
+          ? `(Repeated ${freebie.giveaway.historical.length - 1} times)`
           : '';
 
       embed.addFields([
