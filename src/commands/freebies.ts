@@ -88,6 +88,14 @@ export default {
           )}:R>`,
           inline: true,
         },
+        {
+          name: 'Repeated',
+          value:
+            freebie.giveaway.historical.length > 1
+              ? `Yes (${freebie.giveaway.historical.length - 1} times)`
+              : 'No',
+          inline: true,
+        },
       ]);
     }
 
