@@ -5,6 +5,7 @@ import {
 } from 'discord.js';
 import type { SingleOffer } from '../types/offers.js';
 import { client } from '../utils/client.js';
+import { dedent } from 'ts-dedent';
 
 interface Giveaway {
   _id: string;
@@ -62,6 +63,11 @@ export default {
         currency: freebie.price?.price.currencyCode || 'USD',
       });
 
+      const repeatedText =
+        freebie.giveaway.historical.length > 1
+          ? `(${freebie.giveaway.historical.length - 1} times)`
+          : '';
+
       embed.addFields([
         {
           name: `${freebie.title}${
@@ -76,7 +82,12 @@ export default {
         },
         {
           name: 'Status',
-          value: isOnGoing ? 'On Going' : isUpcoming ? 'Upcoming' : 'Ended',
+          // value: isOnGoing ? 'On Going' : isUpcoming ? 'Upcoming' : 'Ended',
+          value: dedent`${
+            isOnGoing ? 'On Going' : isUpcoming ? 'Upcoming' : 'Ended'
+          }
+          ${repeatedText}`,
+
           inline: true,
         },
         {
@@ -86,14 +97,6 @@ export default {
               isOnGoing ? freebie.giveaway.endDate : freebie.giveaway.startDate
             ).getTime() / 1000
           )}:R>`,
-          inline: true,
-        },
-        {
-          name: 'Repeated',
-          value:
-            freebie.giveaway.historical.length > 1
-              ? `Yes (${freebie.giveaway.historical.length - 1} times)`
-              : 'No',
           inline: true,
         },
       ]);
