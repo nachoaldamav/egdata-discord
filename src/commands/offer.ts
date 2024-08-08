@@ -31,7 +31,7 @@ const getOffer = async (id: string) => {
   return data;
 };
 
-const getOfferMedia = (offer: SingleOffer) => {
+const getOfferMedia = async (offer: SingleOffer) => {
   return client
     .get<{
       images: {
@@ -192,7 +192,7 @@ export default {
 
     // @ts-expect-error
     return interaction.respond(
-      results.slice(0, 5).map((result: any) => ({
+      results.slice(0, 5).map((result) => ({
         name: `${result.title} (${
           offersDictionary[result.offerType] ?? result.offerType
         })`,
