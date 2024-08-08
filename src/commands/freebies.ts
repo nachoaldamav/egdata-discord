@@ -55,9 +55,22 @@ export default {
         continue;
       }
 
+      const hasPrice = freebie.price?.price;
+
+      const priceFmtr = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: freebie.price?.price.currencyCode || 'USD',
+      });
+
       embed.addFields([
         {
-          name: freebie.title,
+          name: `${freebie.title}${
+            hasPrice
+              ? ` (${priceFmtr.format(
+                  (freebie.price?.price.originalPrice as number) / 100
+                )})`
+              : ''
+          }`,
           value: `[View on egdata.app](https://egdata.app/offers/${freebie.id})`,
           inline: true,
         },
