@@ -91,8 +91,15 @@ const getTops = async (id: string) => {
       topWishlisted: number | null;
       topSellers: number | null;
     }>(`/offers/${id}/tops`)
-    .then((res) => res.data)
-    .catch(() => null);
+    .then((res) => {
+      const data = res.data;
+      console.log(data);
+      return data;
+    })
+    .catch((err) => {
+      console.error(err);
+      return null;
+    });
 };
 
 export default {
@@ -167,7 +174,11 @@ export default {
         }
 
         if (tops.topSellers) {
-          text += `💰 #${tops.topSellers} seller`;
+          text += `💰 #${tops.topSellers} top seller`;
+        }
+
+        if (text) {
+          return text;
         }
       }
 
