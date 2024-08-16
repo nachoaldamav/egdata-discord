@@ -85,6 +85,16 @@ const getPrice = async (id: string, country: string) => {
     .catch(() => null);
 };
 
+const getTops = async (id: string) => {
+  return client
+    .get<{
+      topWishlisted: number | null;
+      topSellers: number | null;
+    }>(`/offers/${id}/tops`)
+    .then((res) => res.data)
+    .catch(() => null);
+};
+
 export default {
   data: new SlashCommandBuilder()
     .setName('offer')
@@ -115,12 +125,13 @@ export default {
       });
     }
 
-    const [offerMediaRaw, allGenresRaw, priceUS, priceEUR] =
+    const [offerMediaRaw, allGenresRaw, priceUS, priceEUR, rawTops] =
       await Promise.allSettled([
         getOfferMedia(data),
         genres(),
         getPrice(data.id, 'US'),
         getPrice(data.id, 'ES'),
+        getTops(data.id),
       ]);
 
     const offerMedia =
@@ -129,6 +140,7 @@ export default {
       allGenresRaw.status === 'fulfilled' ? allGenresRaw.value : [];
     const usPrice = priceUS.status === 'fulfilled' ? priceUS.value : null;
     const eurPrice = priceEUR.status === 'fulfilled' ? priceEUR.value : null;
+    const tops = rawTops.status === 'fulfilled' ? rawTops.value : null;
 
     const eurFmtr = new Intl.NumberFormat('es-ES', {
       style: 'currency',
@@ -142,6 +154,25 @@ export default {
     const offerGenres = data.tags
       .map((tag) => allGenres.find((genre) => genre.id === tag.id))
       .filter((genre) => genre);
+
+    const footerText = () => {
+      if (tops) {
+        let text = '';
+        if (tops.topWishlisted) {
+          text += `🔥 #${tops.topWishlisted} whishlisted`;
+        }
+
+        if (tops.topSellers && tops.topWishlisted) {
+          text += ' • ';
+        }
+
+        if (tops.topSellers) {
+          text += `💰 #${tops.topSellers} seller`;
+        }
+      }
+
+      return 'Check more offers on egdata.app';
+    };
 
     const embed = new EmbedBuilder()
       .setTitle(data.title)
@@ -212,7 +243,7 @@ export default {
         name: data.seller.name,
       })
       .setFooter({
-        text: 'Check more offers on egdata.app',
+        text: footerText(),
         iconURL: 'https://egdata.app/logo_simple_white.png',
       })
       .setTimestamp(new Date(data.lastModifiedDate));
