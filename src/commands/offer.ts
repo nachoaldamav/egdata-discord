@@ -55,6 +55,36 @@ const getOfferMedia = async (offer: SingleOffer) => {
     .catch(() => null);
 };
 
+const getPrice = async (id: string, country: string) => {
+  return client
+    .get<{
+      _id: string;
+      country: string;
+      namespace: string;
+      offerId: string;
+      __v: number;
+      appliedRules: Array<unknown>;
+      price: {
+        currencyCode: string;
+        discount: number;
+        discountPrice: number;
+        originalPrice: number;
+        basePayoutCurrencyCode: string;
+        basePayoutPrice: number;
+        payoutCurrencyExchangeRate: number;
+        _id: string;
+      };
+      region: string;
+      updatedAt: string;
+    }>(`/offers/${id}/price`, {
+      params: {
+        country,
+      },
+    })
+    .then((res) => res.data)
+    .catch(() => null);
+};
+
 export default {
   data: new SlashCommandBuilder()
     .setName('offer')
@@ -85,9 +115,29 @@ export default {
       });
     }
 
-    const offerMedia = await getOfferMedia(data).catch(() => null);
+    const [offerMediaRaw, allGenresRaw, priceUS, priceEUR] =
+      await Promise.allSettled([
+        getOfferMedia(data),
+        genres(),
+        getPrice(data.id, 'US'),
+        getPrice(data.id, 'ES'),
+      ]);
 
-    const allGenres = await genres();
+    const offerMedia =
+      offerMediaRaw.status === 'fulfilled' ? offerMediaRaw.value : null;
+    const allGenres =
+      allGenresRaw.status === 'fulfilled' ? allGenresRaw.value : [];
+    const usPrice = priceUS.status === 'fulfilled' ? priceUS.value : null;
+    const eurPrice = priceEUR.status === 'fulfilled' ? priceEUR.value : null;
+
+    const eurFmtr = new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+    });
+    const usFmtr = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    });
 
     const offerGenres = data.tags
       .map((tag) => allGenres.find((genre) => genre.id === tag.id))
@@ -129,10 +179,27 @@ export default {
           inline: true,
         },
         {
+          name: 'Developer',
+          value: data.developerDisplayName ?? data.seller.name,
+          inline: true,
+        },
+        {
           name: 'Last Modified',
           value: `<t:${Math.floor(
             new Date(data.lastModifiedDate).getTime() / 1000
           )}:R>`,
+          inline: true,
+        },
+        {
+          name: 'Price',
+          value: `${
+            usPrice ? `${usFmtr.format(usPrice.price.discountPrice / 100)}` : ''
+          } / ${
+            eurPrice
+              ? `${eurFmtr.format(eurPrice.price.discountPrice / 100)}`
+              : ''
+          }`,
+          inline: true,
         },
       ])
       .setColor(0x00ff00)
@@ -143,7 +210,7 @@ export default {
         text: 'Check more offers on egdata.app',
         iconURL: 'https://egdata.app/logo_simple_white.png',
       })
-      .setTimestamp(new Date(data.effectiveDate));
+      .setTimestamp(new Date(data.releaseDate ?? data.effectiveDate));
 
     const images = (offerMedia?.images ?? []).map((image) =>
       new EmbedBuilder()
