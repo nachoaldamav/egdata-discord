@@ -159,6 +159,34 @@ export default {
       )
       .addFields([
         {
+          name: 'Price',
+          value: `${
+            usPrice ? `${usFmtr.format(usPrice.price.discountPrice / 100)}` : ''
+          } / ${
+            eurPrice
+              ? `${eurFmtr.format(eurPrice.price.discountPrice / 100)}`
+              : ''
+          }`,
+          inline: true,
+        },
+        {
+          name: 'Release Date',
+          value: `<t:${Math.floor(
+            new Date(data.releaseDate ?? data.effectiveDate).getTime() / 1000
+          )}:R>`,
+          inline: true,
+        },
+        {
+          name: 'Developer',
+          value: data.developerDisplayName ?? data.seller.name,
+          inline: true,
+        },
+        {
+          name: 'Publisher',
+          value: data.publisherDisplayName ?? data.seller.name,
+          inline: true,
+        },
+        {
           name: 'Genres',
           value:
             offerGenres.length > 0
@@ -178,29 +206,6 @@ export default {
           value: offersDictionary[data.offerType] ?? data.offerType,
           inline: true,
         },
-        {
-          name: 'Developer',
-          value: data.developerDisplayName ?? data.seller.name,
-          inline: true,
-        },
-        {
-          name: 'Last Modified',
-          value: `<t:${Math.floor(
-            new Date(data.lastModifiedDate).getTime() / 1000
-          )}:R>`,
-          inline: true,
-        },
-        {
-          name: 'Price',
-          value: `${
-            usPrice ? `${usFmtr.format(usPrice.price.discountPrice / 100)}` : ''
-          } / ${
-            eurPrice
-              ? `${eurFmtr.format(eurPrice.price.discountPrice / 100)}`
-              : ''
-          }`,
-          inline: true,
-        },
       ])
       .setColor(0x00ff00)
       .setAuthor({
@@ -210,7 +215,7 @@ export default {
         text: 'Check more offers on egdata.app',
         iconURL: 'https://egdata.app/logo_simple_white.png',
       })
-      .setTimestamp(new Date(data.releaseDate ?? data.effectiveDate));
+      .setTimestamp(new Date(data.lastModifiedDate));
 
     const images = (offerMedia?.images ?? []).map((image) =>
       new EmbedBuilder()
