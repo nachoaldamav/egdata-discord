@@ -8,11 +8,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const client = new Client({
-  intents:
-    GatewayIntentBits.Guilds |
-    GatewayIntentBits.GuildMessages |
-    GatewayIntentBits.MessageContent |
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+  ],
 });
 
 // @ts-expect-error
