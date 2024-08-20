@@ -1,7 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
-import { Client, Events, GatewayIntentBits, Collection } from 'discord.js';
+import {
+  Client,
+  Events,
+  GatewayIntentBits,
+  Collection,
+  ActivityType,
+} from 'discord.js';
 import { token } from './config.js';
 
 import { fileURLToPath } from 'node:url';
@@ -48,6 +54,7 @@ for (const file of commandFiles) {
 
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`Logged in as ${readyClient.user.tag}`);
+  client.user?.setActivity('EGS changes...', { type: ActivityType.Watching });
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
