@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import http from 'node:http';
 import { Client, Events, GatewayIntentBits, Collection } from 'discord.js';
 import { token } from './config.js';
 
@@ -94,6 +95,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.error(error);
     }
   }
+});
+
+// Start the health check server
+const healthCheckPort = 3000;
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/health' && req.method === 'GET') {
+    if (client.isReady()) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+    } else {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'unhealthy' }));
+    }
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+server.listen(healthCheckPort, () => {
+  console.log(`Health check server running on port ${healthCheckPort}`);
 });
 
 client.login(token);
