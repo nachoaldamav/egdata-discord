@@ -23,7 +23,12 @@ for (const file of commandFiles) {
     'data' in command &&
     ('execute' in command || 'autocomplete' in command)
   ) {
-    commands.push(command.data.toJSON());
+    const data = command.data.toJSON();
+    commands.push({
+      ...data,
+      integration_types: [0, 1],
+      contexts: [0, 1, 2],
+    });
   } else {
     console.error(`Error loading command ${file}`);
   }
