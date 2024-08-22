@@ -64,8 +64,8 @@ export default {
       });
 
       const repeatedText =
-        freebie.giveaway.historical.length > 1
-          ? `(Repeated ${freebie.giveaway.historical.length - 1} times)`
+        freebie.giveaway.historical?.length > 1
+          ? `(Repeated ${(freebie.giveaway.historical?.length ?? 1) - 1} times)`
           : '';
 
       embed.addFields([
