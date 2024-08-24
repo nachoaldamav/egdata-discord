@@ -90,6 +90,7 @@ const getTops = async (id: string) => {
     .get<{
       topWishlisted: number | null;
       topSellers: number | null;
+      topDemos: number | null;
     }>(`/offers/${id}/tops`)
     .then((res) => {
       const data = res.data;
@@ -164,21 +165,19 @@ export default {
 
     const footerText = () => {
       if (tops) {
-        let text = '';
+        const text: string[] = [];
         if (tops.topWishlisted) {
-          text += `🔥 #${tops.topWishlisted} whishlisted`;
+          text.push(`🔥 #${tops.topWishlisted} whishlisted`);
         }
-
-        if (tops.topSellers && tops.topWishlisted) {
-          text += ' • ';
-        }
-
         if (tops.topSellers) {
-          text += `💰 #${tops.topSellers} top seller`;
+          text.push(`💰 #${tops.topSellers} top seller`);
+        }
+        if (tops.topDemos) {
+          text.push(`🎮 #${tops.topDemos} top demos`);
         }
 
         if (text) {
-          return text;
+          return text.join(' • ');
         }
       }
 
