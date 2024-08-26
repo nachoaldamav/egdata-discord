@@ -94,7 +94,6 @@ const getTops = async (id: string) => {
     }>(`/offers/${id}/tops`)
     .then((res) => {
       const data = res.data;
-      console.log(data);
       return data;
     })
     .catch((err) => {
@@ -132,6 +131,8 @@ export default {
         ephemeral: true,
       });
     }
+
+    console.log(`User requested offer ${data.id}`);
 
     const [offerMediaRaw, allGenresRaw, priceUS, priceEUR, rawTops] =
       await Promise.allSettled([
@@ -253,7 +254,10 @@ export default {
         name: data.seller.name,
       })
       .setFooter({
-        text: footerText(),
+        text:
+          footerText() !== ''
+            ? footerText()
+            : 'Check more offers on egdata.app',
         iconURL: 'https://egdata.app/logo_simple_white.png',
       })
       .setTimestamp(new Date(data.lastModifiedDate));
