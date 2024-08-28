@@ -186,7 +186,8 @@ export default {
     };
 
     const embed = new EmbedBuilder()
-      .setTitle(data.title)
+      //.setTitle(data.title)
+      .setTitle(`${data.title}${data.prePurchase ? ' (Pre-Purchase)' : ''}`)
       .setDescription(data.description)
       .setURL(
         `https://egdata.app/offers/${data.id}?utm_source=discord&utm_medium=bot&utm_campaign=offer`
@@ -310,7 +311,7 @@ export default {
     // @ts-expect-error
     return interaction.respond(
       results.slice(0, 5).map((result) => ({
-        name: `${result.title} (${
+        name: `${result.title}${result.prePurchase ? ' (Pre-Purchase)' : ''} (${
           offersDictionary[result.offerType] ?? result.offerType
         })`,
         value: result.id,
