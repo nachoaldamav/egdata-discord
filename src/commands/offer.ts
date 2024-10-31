@@ -168,7 +168,7 @@ export default {
       if (tops) {
         const text: string[] = [];
         if (tops.topWishlisted) {
-          text.push(`🔥 #${tops.topWishlisted} whishlisted`);
+          text.push(`🔥 #${tops.topWishlisted} wishlisted`);
         }
         if (tops.topSellers) {
           text.push(`💰 #${tops.topSellers} top seller`);
