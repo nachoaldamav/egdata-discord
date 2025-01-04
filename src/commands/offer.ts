@@ -88,9 +88,7 @@ const getPrice = async (id: string, country: string) => {
 const getTops = async (id: string) => {
   return client
     .get<{
-      topWishlisted: number | null;
-      topSellers: number | null;
-      topDemos: number | null;
+      [key: string]: number;
     }>(`/offers/${id}/tops`)
     .then((res) => {
       const data = res.data;
@@ -167,17 +165,37 @@ export default {
     const footerText = () => {
       if (tops) {
         const text: string[] = [];
-        if (tops.topWishlisted) {
-          text.push(`🔥 #${tops.topWishlisted} wishlisted`);
+
+        if (tops['top-wishlisted']) {
+          text.push(`🔥 #${tops['top-wishlisted']} wishlisted`);
         }
-        if (tops.topSellers) {
-          text.push(`💰 #${tops.topSellers} top seller`);
+        if (tops['top-sellers']) {
+          text.push(`💰 #${tops['top-sellers']} top seller`);
         }
-        if (tops.topDemos) {
-          text.push(`🎮 #${tops.topDemos} top demos`);
+        if (tops['top-demos']) {
+          text.push(`🎮 #${tops['top-demos']} top demos`);
+        }
+        if (tops['top-new-releases']) {
+          text.push(`🆕 #${tops['top-new-releases']} top new releases`);
+        }
+        if (tops['most-played']) {
+          text.push(`🎉 #${tops['most-played']} most played`);
+        }
+        if (tops['top-player-reviewed']) {
+          text.push(`⭐ #${tops['top-player-reviewed']} top player reviewed`);
+        }
+        if (tops['most-popular']) {
+          text.push(`🚀 #${tops['most-popular']} most popular`);
+        }
+        if (tops['top-free-to-play']) {
+          text.push(`🆓 #${tops['top-free-to-play']} top free to play`);
+        }
+        if (tops['top-add-ons']) {
+          text.push(`➕ #${tops['top-add-ons']} top add-ons`);
         }
 
-        if (text) {
+        // Return joined text if we have entries
+        if (text.length) {
           return text.join(' • ');
         }
       }
@@ -186,7 +204,6 @@ export default {
     };
 
     const embed = new EmbedBuilder()
-      //.setTitle(data.title)
       .setTitle(`${data.title}${data.prePurchase ? ' (Pre-Purchase)' : ''}`)
       .setDescription(data.description)
       .setURL(
