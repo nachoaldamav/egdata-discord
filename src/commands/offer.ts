@@ -330,7 +330,7 @@ export default {
       results.slice(0, 5).map((result) => ({
         name: `${result.title}${result.prePurchase ? ' (Pre-Purchase)' : ''} (${
           offersDictionary[result.offerType] ?? result.offerType
-        })`,
+        }) [${result.id.slice(0, 5)}]`,
         value: result.id,
       }))
     );
