@@ -9,6 +9,7 @@ import { getImage } from '../utils/get-image.js';
 import { client } from '../utils/client.js';
 import { offersDictionary } from '../utils/offer-types.js';
 import { type Genre, genres } from '../utils/genres.js';
+import { BaseCommand } from '../types/BaseCommand.js';
 
 const search = async (query: string) => {
   const data = await client
@@ -108,8 +109,8 @@ const mobileNames: Record<string, string> = {
   '39071': 'Android',
 };
 
-export default {
-  data: new SlashCommandBuilder()
+export class OfferCommand extends BaseCommand {
+  override data = new SlashCommandBuilder()
     .setName('offer')
     .setDescription('Retrieves the latest offer from the EGData API.')
     .addStringOption((option) =>
@@ -117,25 +118,27 @@ export default {
         .setName('query')
         .setDescription('The query to search for.')
         .setAutocomplete(true)
-    ),
+    );
 
-  async execute(interaction: CommandInteraction) {
+  override async execute(interaction: CommandInteraction): Promise<void> {
     const id = interaction.options.get('query');
 
     if (!id) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Please provide an ID.',
         ephemeral: true,
       });
+      return;
     }
 
     const data = await getOffer(id.value?.toString() || '').catch(() => null);
 
     if (!data) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'No offer found with that ID.',
         ephemeral: true,
       });
+      return;
     }
 
     console.log(`User requested offer ${data.id}`);
@@ -311,12 +314,12 @@ export default {
       );
     }
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [embed, ...images.slice(0, 3)],
     });
-  },
+  }
 
-  async autocomplete(interaction: AutocompleteInteraction) {
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 
@@ -325,7 +328,8 @@ export default {
     const data = await search(query.toString());
 
     if (!data) {
-      return interaction.respond([]);
+      await interaction.respond([]);
+      return;
     }
 
     const results = data.hits;
@@ -336,14 +340,17 @@ export default {
       titleCount.set(result.title, (titleCount.get(result.title) || 0) + 1);
     });
 
-    return interaction.respond(
+    await interaction.respond(
       results.slice(0, 5).map((result) => {
-        const isMobile = mobilePlatforms.includes(result.offerType);
+        // const isMobile = mobilePlatforms.includes(result.offerType);
+        const isMobile = result.tags.some(tag => mobilePlatforms.includes(tag.id));
         const isDuplicate = (titleCount.get(result.title) || 0) > 1;
+
+        console.log(result.title, titleCount.get(result.title), result)
 
         let suffix = '';
         if (isMobile) {
-          suffix = ` (${mobileNames[result.offerType]})`;
+          suffix = ` (${mobileNames[result.tags.find(tag => mobilePlatforms.includes(tag.id))?.id ?? '']})`;
         } else if (isDuplicate) {
           suffix = ` [${result.id.slice(0, 5)}]`;
         }
@@ -354,5 +361,7 @@ export default {
         };
       })
     );
-  },
-};
+  }
+}
+
+export default new OfferCommand();
