@@ -6,6 +6,7 @@ import {
 import type { SingleOffer } from '../types/offers.js';
 import { client } from '../utils/client.js';
 import { dedent } from 'ts-dedent';
+import { BaseCommand } from '../types/BaseCommand.js';
 
 interface Giveaway {
   _id: string;
@@ -20,20 +21,21 @@ interface FreeGame extends SingleOffer {
   giveaway: Giveaway;
 }
 
-const getFreebies = async () => {
-  const data = await client
-    .get<FreeGame[]>('/free-games')
-    .then((res) => res.data);
-
-  return data;
-};
-
-export default {
-  data: new SlashCommandBuilder()
+export class FreebiesCommand extends BaseCommand {
+  override data = new SlashCommandBuilder()
     .setName('freebies')
-    .setDescription('Retrieves the current giveaways on Epic Games Store.'),
-  async execute(interaction: CommandInteraction) {
-    const data = await getFreebies();
+    .setDescription('Retrieves the current giveaways on Epic Games Store.');
+
+  private async getFreebies() {
+    const data = await client
+      .get<FreeGame[]>('/free-games')
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  override async execute(interaction: CommandInteraction): Promise<void> {
+    const data = await this.getFreebies();
 
     const embed = new EmbedBuilder()
       .setTitle('Current Giveaways')
@@ -70,24 +72,20 @@ export default {
 
       embed.addFields([
         {
-          name: `${freebie.title}${
-            hasPrice
+          name: `${freebie.title}${hasPrice
               ? ` (${priceFmtr.format(
-                  (freebie.price?.price.originalPrice as number) / 100
-                )})`
+                (freebie.price?.price.originalPrice as number) / 100
+              )})`
               : ''
-          }`,
+            }`,
           value: `[View on egdata.app](https://egdata.app/offers/${freebie.id})`,
           inline: true,
         },
         {
           name: 'Status',
-          // value: isOnGoing ? 'On Going' : isUpcoming ? 'Upcoming' : 'Ended',
-          value: dedent`${
-            isOnGoing ? 'On Going' : isUpcoming ? 'Upcoming' : 'Ended'
-          }
+          value: dedent`${isOnGoing ? 'On Going' : isUpcoming ? 'Upcoming' : 'Ended'
+            }
           ${repeatedText}`,
-
           inline: true,
         },
         {
@@ -102,8 +100,10 @@ export default {
       ]);
     }
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [embed],
     });
-  },
-};
+  }
+}
+
+export default new FreebiesCommand();

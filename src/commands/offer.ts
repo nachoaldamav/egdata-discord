@@ -10,97 +10,7 @@ import { client } from '../utils/client.js';
 import { offersDictionary } from '../utils/offer-types.js';
 import { type Genre, genres } from '../utils/genres.js';
 import { BaseCommand } from '../types/BaseCommand.js';
-
-const search = async (query: string) => {
-  const data = await client
-    .get<{
-      hits: SingleOffer[];
-    }>('/multisearch/offers', {
-      params: {
-        query,
-      },
-    })
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getOffer = async (id: string) => {
-  const data = await client
-    .get<SingleOffer>(`/offers/${id}`)
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getOfferMedia = async (offer: SingleOffer) => {
-  return client
-    .get<{
-      images: {
-        _id: string;
-        src: string;
-      }[];
-      videos: {
-        _id: string;
-        outputs: {
-          duration: number;
-          url: string;
-          width: number;
-          height: number;
-          key: string;
-          contentType: string;
-          _id: string;
-        }[];
-      }[];
-    }>(`/offers/${offer.id}/media`)
-    .then((res) => res.data)
-    .catch(() => null);
-};
-
-const getPrice = async (id: string, country: string) => {
-  return client
-    .get<{
-      _id: string;
-      country: string;
-      namespace: string;
-      offerId: string;
-      __v: number;
-      appliedRules: Array<unknown>;
-      price: {
-        currencyCode: string;
-        discount: number;
-        discountPrice: number;
-        originalPrice: number;
-        basePayoutCurrencyCode: string;
-        basePayoutPrice: number;
-        payoutCurrencyExchangeRate: number;
-        _id: string;
-      };
-      region: string;
-      updatedAt: string;
-    }>(`/offers/${id}/price`, {
-      params: {
-        country,
-      },
-    })
-    .then((res) => res.data)
-    .catch(() => null);
-};
-
-const getTops = async (id: string) => {
-  return client
-    .get<{
-      [key: string]: number;
-    }>(`/offers/${id}/tops`)
-    .then((res) => {
-      const data = res.data;
-      return data;
-    })
-    .catch((err) => {
-      console.error(err);
-      return null;
-    });
-};
+import type { SearchResponse, OfferMediaResponse, PriceResponse, TopsResponse } from '../types/api.js';
 
 const mobilePlatforms = ['39070', '39071'];
 
@@ -120,6 +30,57 @@ export class OfferCommand extends BaseCommand {
         .setAutocomplete(true)
     );
 
+  private async search(query: string) {
+    const data = await client
+      .get<SearchResponse>('/multisearch/offers', {
+        params: {
+          query,
+        },
+      })
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getOffer(id: string) {
+    const data = await client
+      .get<SingleOffer>(`/offers/${id}`)
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getOfferMedia(offer: SingleOffer) {
+    return client
+      .get<OfferMediaResponse>(`/offers/${offer.id}/media`)
+      .then((res) => res.data)
+      .catch(() => null);
+  }
+
+  private async getPrice(id: string, country: string) {
+    return client
+      .get<PriceResponse>(`/offers/${id}/price`, {
+        params: {
+          country,
+        },
+      })
+      .then((res) => res.data)
+      .catch(() => null);
+  }
+
+  private async getTops(id: string) {
+    return client
+      .get<TopsResponse>(`/offers/${id}/tops`)
+      .then((res) => {
+        const data = res.data;
+        return data;
+      })
+      .catch((err) => {
+        this.logger.error('Failed to fetch tops:', err);
+        return null;
+      });
+  }
+
   override async execute(interaction: CommandInteraction): Promise<void> {
     const id = interaction.options.get('query');
 
@@ -131,7 +92,7 @@ export class OfferCommand extends BaseCommand {
       return;
     }
 
-    const data = await getOffer(id.value?.toString() || '').catch(() => null);
+    const data = await this.getOffer(id.value?.toString() || '').catch(() => null);
 
     if (!data) {
       await interaction.reply({
@@ -141,15 +102,15 @@ export class OfferCommand extends BaseCommand {
       return;
     }
 
-    console.log(`User requested offer ${data.id}`);
+    this.logger.info(`User requested offer ${data.id}`);
 
     const [offerMediaRaw, allGenresRaw, priceUS, priceEUR, rawTops] =
       await Promise.allSettled([
-        getOfferMedia(data),
+        this.getOfferMedia(data),
         genres(),
-        getPrice(data.id, 'US'),
-        getPrice(data.id, 'ES'),
-        getTops(data.id),
+        this.getPrice(data.id, 'US'),
+        this.getPrice(data.id, 'ES'),
+        this.getTops(data.id),
       ]);
 
     const offerMedia =
@@ -323,9 +284,9 @@ export class OfferCommand extends BaseCommand {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 
-    console.log('Autocomplete query:', query);
+    this.logger.info('Autocomplete query:', query);
 
-    const data = await search(query.toString());
+    const data = await this.search(query.toString());
 
     if (!data) {
       await interaction.respond([]);
@@ -342,11 +303,14 @@ export class OfferCommand extends BaseCommand {
 
     await interaction.respond(
       results.slice(0, 5).map((result) => {
-        // const isMobile = mobilePlatforms.includes(result.offerType);
         const isMobile = result.tags.some(tag => mobilePlatforms.includes(tag.id));
         const isDuplicate = (titleCount.get(result.title) || 0) > 1;
 
-        console.log(result.title, titleCount.get(result.title), result)
+        this.logger.debug('Processing result:', {
+          title: result.title,
+          duplicateCount: titleCount.get(result.title),
+          result
+        });
 
         let suffix = '';
         if (isMobile) {

@@ -2,35 +2,15 @@ import {
   SlashCommandBuilder,
   type CommandInteraction,
   EmbedBuilder,
+  AutocompleteInteraction,
 } from 'discord.js';
 import { client } from '../utils/client.js';
 import type { SingleItem } from '../types/items.js';
 import { getImage } from '../utils/get-image.js';
+import { BaseCommand } from '../types/BaseCommand.js';
 
-const search = async (query: string, type?: string) => {
-  const data = await client
-    .get<{
-      hits: SingleItem[];
-    }>('/multisearch/items', {
-      params: {
-        query,
-        type,
-      },
-    })
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getItem = async (id: string) => {
-  const data = await client
-    .get<SingleItem>(`/items/${id}`)
-    .then((res) => res.data);
-  return data;
-};
-
-export default {
-  data: new SlashCommandBuilder()
+export class ItemsCommand extends BaseCommand {
+  override data = new SlashCommandBuilder()
     .setName('item')
     .setDescription('Retrieves the latest item from the EGData API.')
     .addStringOption((option) =>
@@ -48,28 +28,52 @@ export default {
           { name: 'Audience', value: 'AUDIENCE' },
         ])
         .setRequired(false)
-    ),
+    );
 
-  async execute(interaction: CommandInteraction) {
+  private async search(query: string, type?: string) {
+    const data = await client
+      .get<{
+        hits: SingleItem[];
+      }>('/multisearch/items', {
+        params: {
+          query,
+          type,
+        },
+      })
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getItem(id: string) {
+    const data = await client
+      .get<SingleItem>(`/items/${id}`)
+      .then((res) => res.data);
+    return data;
+  }
+
+  override async execute(interaction: CommandInteraction): Promise<void> {
     const id = interaction.options.get('query');
 
     if (!id) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Please provide an ID.',
         ephemeral: true,
       });
+      return;
     }
 
     const [itemRaw] = await Promise.allSettled([
-      getItem(id.value?.toString() || ''),
+      this.getItem(id.value?.toString() || ''),
     ]);
     const item = itemRaw.status === 'fulfilled' ? itemRaw.value : null;
 
     if (!item) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'No item found with that ID.',
         ephemeral: true,
       });
+      return;
     }
 
     const embed = new EmbedBuilder()
@@ -86,36 +90,37 @@ export default {
       .setColor(0x00ff00)
       .setTimestamp(new Date(item.lastModifiedDate));
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [embed],
     });
-  },
+  }
 
-  async autocomplete(interaction: CommandInteraction) {
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const type = interaction.options.get('type');
     const query = focusedValue?.value || '';
 
-    console.log('Autocomplete query:', query);
+    this.logger.info('Autocomplete query:', query);
 
-    const data = await search(
+    const data = await this.search(
       query.toString(),
       type?.value?.toString() ?? undefined
     );
 
     if (!data) {
-      // @ts-expect-error
-      return interaction.respond([]);
+      await interaction.respond([]);
+      return;
     }
 
     const results = data.hits;
 
-    // @ts-expect-error
-    return interaction.respond(
+    await interaction.respond(
       results.slice(0, 5).map((result) => ({
         name: `${result.title} (${result.entitlementType})`,
         value: result.id,
       }))
     );
-  },
-};
+  }
+}
+
+export default new ItemsCommand();

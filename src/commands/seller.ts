@@ -2,10 +2,12 @@ import {
   SlashCommandBuilder,
   type CommandInteraction,
   EmbedBuilder,
+  AutocompleteInteraction,
 } from 'discord.js';
 import { client } from '../utils/client.js';
 import type { SingleOffer } from '../types/offers.js';
 import { dedent } from 'ts-dedent';
+import { BaseCommand } from '../types/BaseCommand.js';
 
 interface Seller {
   _id: string;
@@ -24,50 +26,8 @@ interface Seller {
   };
 }
 
-const search = async (query: string) => {
-  const data = await client
-    .get<{
-      hits: Seller[];
-    }>('/multisearch/sellers', {
-      params: {
-        query,
-      },
-    })
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getSeller = async (id: string) => {
-  const data = await client
-    .get<{
-      offers: number;
-      items: number;
-      games: number;
-      freegames: number;
-      seller: Seller;
-    }>(`/sellers/${id}/stats`)
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getCovers = async (id: string) => {
-  const data = await client
-    .get<SingleOffer[]>(`/sellers/${id}/cover`)
-    .then((res) => res.data);
-
-  return data;
-};
-
-const formatLogo = (logo: string) => {
-  return logo.startsWith('//')
-    ? `https:${logo.replace('t_thumb', 't_1080p').replace('.jpg', '.webp')}`
-    : logo;
-};
-
-export default {
-  data: new SlashCommandBuilder()
+export class SellerCommand extends BaseCommand {
+  override data = new SlashCommandBuilder()
     .setName('seller')
     .setDescription('Retrieves a seller from the EGData API.')
     .addStringOption((option) =>
@@ -75,32 +35,75 @@ export default {
         .setName('query')
         .setDescription('The query to search for.')
         .setAutocomplete(true)
-    ),
+    );
 
-  async execute(interaction: CommandInteraction) {
+  private async search(query: string) {
+    const data = await client
+      .get<{
+        hits: Seller[];
+      }>('/multisearch/sellers', {
+        params: {
+          query,
+        },
+      })
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getSeller(id: string) {
+    const data = await client
+      .get<{
+        offers: number;
+        items: number;
+        games: number;
+        freegames: number;
+        seller: Seller;
+      }>(`/sellers/${id}/stats`)
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getCovers(id: string) {
+    const data = await client
+      .get<SingleOffer[]>(`/sellers/${id}/cover`)
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private formatLogo(logo: string) {
+    return logo.startsWith('//')
+      ? `https:${logo.replace('t_thumb', 't_1080p').replace('.jpg', '.webp')}`
+      : logo;
+  }
+
+  override async execute(interaction: CommandInteraction): Promise<void> {
     const id = interaction.options.get('query');
 
     if (!id) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Please provide an ID.',
         ephemeral: true,
       });
+      return;
     }
 
-    // const data = await getSeller(id.value?.toString() || '').catch(() => null);
     const [sellerRaw, coversRaw] = await Promise.allSettled([
-      getSeller(id.value?.toString() || ''),
-      getCovers(id.value?.toString() || ''),
+      this.getSeller(id.value?.toString() || ''),
+      this.getCovers(id.value?.toString() || ''),
     ]);
 
     const seller = sellerRaw.status === 'fulfilled' ? sellerRaw.value : null;
     const covers = coversRaw.status === 'fulfilled' ? coversRaw.value : null;
 
     if (!seller) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'No seller found with that ID.',
         ephemeral: true,
       });
+      return;
     }
 
     // Create an embed to showcase the seller's information
@@ -110,7 +113,7 @@ export default {
         `https://egdata.app/sellers/${seller.seller._id}?utm_source=discord&utm_medium=bot&utm_campaign=seller`
       )
       .setThumbnail(
-        formatLogo(
+        this.formatLogo(
           seller.seller.logo?.url ?? 'https://egdata.app/placeholder.webp'
         )
       )
@@ -157,30 +160,33 @@ export default {
         },
       ]);
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [embed],
     });
-  },
+  }
 
-  async autocomplete(interaction: CommandInteraction) {
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 
-    const data = await search(query.toString());
+    this.logger.info('Autocomplete query:', query);
+
+    const data = await this.search(query.toString());
 
     if (!data) {
-      // @ts-expect-error
-      return interaction.respond([]);
+      await interaction.respond([]);
+      return;
     }
 
     const results = data.hits;
 
-    // @ts-expect-error
-    return interaction.respond(
+    await interaction.respond(
       results.slice(0, 5).map((result) => ({
         name: result.name,
         value: result._id,
       }))
     );
-  },
-};
+  }
+}
+
+export default new SellerCommand();

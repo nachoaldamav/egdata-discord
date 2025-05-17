@@ -2,43 +2,16 @@ import {
   SlashCommandBuilder,
   type CommandInteraction,
   EmbedBuilder,
+  AutocompleteInteraction,
 } from 'discord.js';
 import { client } from '../utils/client.js';
 import type { SingleItem } from '../types/items.js';
 import { getImage } from '../utils/get-image.js';
 import type { Asset } from '../types/asset.js';
+import { BaseCommand } from '../types/BaseCommand.js';
 
-const search = async (query: string) => {
-  const data = await client
-    .get<{
-      hits: SingleItem[];
-    }>('/multisearch/items', {
-      params: {
-        query,
-        type: 'EXECUTABLE',
-      },
-    })
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getItem = async (id: string) => {
-  const data = await client
-    .get<SingleItem>(`/items/${id}`)
-    .then((res) => res.data);
-  return data;
-};
-
-const getItemAssets = async (id: string) => {
-  const data = await client
-    .get<Asset[]>(`/items/${id}/assets`)
-    .then((res) => res.data);
-  return data;
-};
-
-export default {
-  data: new SlashCommandBuilder()
+export class AssetsCommand extends BaseCommand {
+  override data = new SlashCommandBuilder()
     .setName('assets')
     .setDescription('Retrieves the assets for a specific game.')
     .addStringOption((option) =>
@@ -46,30 +19,61 @@ export default {
         .setName('query')
         .setDescription('The query to search for.')
         .setAutocomplete(true)
-    ),
+    );
 
-  async execute(interaction: CommandInteraction) {
+  private async search(query: string) {
+    const data = await client
+      .get<{
+        hits: SingleItem[];
+      }>('/multisearch/items', {
+        params: {
+          query,
+          type: 'EXECUTABLE',
+        },
+      })
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getItem(id: string) {
+    const data = await client
+      .get<SingleItem>(`/items/${id}`)
+      .then((res) => res.data);
+    return data;
+  }
+
+  private async getItemAssets(id: string) {
+    const data = await client
+      .get<Asset[]>(`/items/${id}/assets`)
+      .then((res) => res.data);
+    return data;
+  }
+
+  override async execute(interaction: CommandInteraction): Promise<void> {
     const id = interaction.options.get('query');
 
     if (!id) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Please provide an ID.',
         ephemeral: true,
       });
+      return;
     }
 
     const [itemRaw, assetsRaw] = await Promise.allSettled([
-      getItem(id.value?.toString() || ''),
-      getItemAssets(id.value?.toString() || ''),
+      this.getItem(id.value?.toString() || ''),
+      this.getItemAssets(id.value?.toString() || ''),
     ]);
     const item = itemRaw.status === 'fulfilled' ? itemRaw.value : null;
     const assets = assetsRaw.status === 'fulfilled' ? assetsRaw.value : null;
 
     if (!item) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'No item found with that ID.',
         ephemeral: true,
       });
+      return;
     }
 
     const embed = new EmbedBuilder()
@@ -95,35 +99,34 @@ export default {
         }))
       );
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [embed],
     });
-  },
+  }
 
-  async autocomplete(interaction: CommandInteraction) {
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 
-    console.log('Autocomplete query:', query);
+    this.logger.info('Autocomplete query:', query);
 
-    const data = await search(query.toString());
+    const data = await this.search(query.toString());
 
     if (!data) {
-      // @ts-expect-error
-      return interaction.respond([]);
+      await interaction.respond([]);
+      return;
     }
 
     const results = data.hits;
 
-    // @ts-expect-error
-    return interaction.respond(
+    await interaction.respond(
       results.slice(0, 5).map((result) => ({
         name: `${result.title}`,
         value: result.id,
       }))
     );
-  },
-};
+  }
+}
 
 function formatBytes(bytes: number, decimals = 2) {
   if (bytes === 0) return '0 Bytes';
@@ -136,3 +139,5 @@ function formatBytes(bytes: number, decimals = 2) {
 
   return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
 }
+
+export default new AssetsCommand();

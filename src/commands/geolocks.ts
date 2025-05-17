@@ -2,35 +2,15 @@ import {
   SlashCommandBuilder,
   type CommandInteraction,
   EmbedBuilder,
+  AutocompleteInteraction,
 } from 'discord.js';
 import type { SingleOffer } from '../types/offers.js';
 import { client } from '../utils/client.js';
 import { offersDictionary } from '../utils/offer-types.js';
+import { BaseCommand } from '../types/BaseCommand.js';
 
-const search = async (query: string) => {
-  const data = await client
-    .get<{
-      hits: SingleOffer[];
-    }>('/multisearch/offers', {
-      params: {
-        query,
-      },
-    })
-    .then((res) => res.data);
-
-  return data;
-};
-
-const getOffer = async (id: string) => {
-  const data = await client
-    .get<SingleOffer>(`/offers/${id}`)
-    .then((res) => res.data);
-
-  return data;
-};
-
-export default {
-  data: new SlashCommandBuilder()
+export class GeolockCommand extends BaseCommand {
+  override data = new SlashCommandBuilder()
     .setName('geolock')
     .setDescription(
       'Retrieves the restricted countries list for a given offer.'
@@ -40,25 +20,49 @@ export default {
         .setName('query')
         .setDescription('The query to search for.')
         .setAutocomplete(true)
-    ),
+    );
 
-  async execute(interaction: CommandInteraction) {
+  private async search(query: string) {
+    const data = await client
+      .get<{
+        hits: SingleOffer[];
+      }>('/multisearch/offers', {
+        params: {
+          query,
+        },
+      })
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  private async getOffer(id: string) {
+    const data = await client
+      .get<SingleOffer>(`/offers/${id}`)
+      .then((res) => res.data);
+
+    return data;
+  }
+
+  override async execute(interaction: CommandInteraction): Promise<void> {
     const id = interaction.options.get('query');
 
     if (!id) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Please provide an ID.',
         ephemeral: true,
       });
+      return;
     }
 
-    const data = await getOffer(id.value?.toString() || '').catch(() => null);
+    const data = await this.getOffer(id.value?.toString() || '').catch(() => null);
 
     if (!data) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'No offer found with that ID.',
         ephemeral: true,
       });
+      return;
     }
 
     const embed = new EmbedBuilder()
@@ -69,19 +73,19 @@ export default {
       .addFields([
         ...(data.countriesBlacklist
           ? [
-              {
-                name: 'Countries Blacklisted',
-                value: (data.countriesBlacklist ?? []).join(', '),
-              },
-            ]
+            {
+              name: 'Countries Blacklisted',
+              value: (data.countriesBlacklist ?? []).join(', '),
+            },
+          ]
           : []),
         ...(data.countriesWhitelist
           ? [
-              {
-                name: 'Countries Whitelisted',
-                value: (data.countriesWhitelist ?? []).join(', '),
-              },
-            ]
+            {
+              name: 'Countries Whitelisted',
+              value: (data.countriesWhitelist ?? []).join(', '),
+            },
+          ]
           : []),
       ])
       .setColor(0x00ff00)
@@ -91,32 +95,34 @@ export default {
       })
       .setTimestamp(new Date(data.effectiveDate));
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [embed],
     });
-  },
+  }
 
-  async autocomplete(interaction: CommandInteraction) {
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 
-    const data = await search(query.toString());
+    this.logger.info('Autocomplete query:', query);
+
+    const data = await this.search(query.toString());
 
     if (!data) {
-      // @ts-expect-error
-      return interaction.respond([]);
+      await interaction.respond([]);
+      return;
     }
 
     const results = data.hits;
 
-    // @ts-expect-error
-    return interaction.respond(
-      results.slice(0, 5).map((result: any) => ({
-        name: `${result.title} (${
-          offersDictionary[result.offerType] ?? result.offerType
-        })`,
+    await interaction.respond(
+      results.slice(0, 5).map((result) => ({
+        name: `${result.title} (${offersDictionary[result.offerType] ?? result.offerType
+          })`,
         value: result.id,
       }))
     );
-  },
-};
+  }
+}
+
+export default new GeolockCommand();
