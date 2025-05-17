@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   type CommandInteraction,
   EmbedBuilder,
+  AutocompleteInteraction,
 } from 'discord.js';
 import type { SingleOffer } from '../types/offers.js';
 import { getImage } from '../utils/get-image.js';
@@ -98,6 +99,13 @@ const getTops = async (id: string) => {
       console.error(err);
       return null;
     });
+};
+
+const mobilePlatforms = ['39070', '39071'];
+
+const mobileNames: Record<string, string> = {
+  '39070': 'iOS',
+  '39071': 'Android',
 };
 
 export default {
@@ -220,13 +228,11 @@ export default {
       .addFields([
         {
           name: 'Price',
-          value: `${
-            usPrice ? `${usFmtr.format(usPrice.price.discountPrice / 100)}` : ''
-          } / ${
-            eurPrice
+          value: `${usPrice ? `${usFmtr.format(usPrice.price.discountPrice / 100)}` : ''
+            } / ${eurPrice
               ? `${eurFmtr.format(eurPrice.price.discountPrice / 100)}`
               : ''
-          }`,
+            }`,
           inline: true,
         },
         {
@@ -251,13 +257,13 @@ export default {
           value:
             offerGenres.length > 0
               ? offerGenres
-                  .map((genre: Genre | undefined) => {
-                    if (genre) {
-                      return `[${genre.name}](https://egdata.app/search?tags=${genre.id})`;
-                    }
-                    return '';
-                  })
-                  .join(', ')
+                .map((genre: Genre | undefined) => {
+                  if (genre) {
+                    return `[${genre.name}](https://egdata.app/search?tags=${genre.id})`;
+                  }
+                  return '';
+                })
+                .join(', ')
               : 'No genres',
           inline: true,
         },
@@ -310,7 +316,7 @@ export default {
     });
   },
 
-  async autocomplete(interaction: CommandInteraction) {
+  async autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 
@@ -319,20 +325,34 @@ export default {
     const data = await search(query.toString());
 
     if (!data) {
-      // @ts-expect-error
       return interaction.respond([]);
     }
 
     const results = data.hits;
 
-    // @ts-expect-error
+    // Create a map to track duplicate titles
+    const titleCount = new Map<string, number>();
+    results.forEach(result => {
+      titleCount.set(result.title, (titleCount.get(result.title) || 0) + 1);
+    });
+
     return interaction.respond(
-      results.slice(0, 5).map((result) => ({
-        name: `${result.title}${result.prePurchase ? ' (Pre-Purchase)' : ''} (${
-          offersDictionary[result.offerType] ?? result.offerType
-        }) [${result.id.slice(0, 5)}]`,
-        value: result.id,
-      }))
+      results.slice(0, 5).map((result) => {
+        const isMobile = mobilePlatforms.includes(result.offerType);
+        const isDuplicate = (titleCount.get(result.title) || 0) > 1;
+
+        let suffix = '';
+        if (isMobile) {
+          suffix = ` (${mobileNames[result.offerType]})`;
+        } else if (isDuplicate) {
+          suffix = ` [${result.id.slice(0, 5)}]`;
+        }
+
+        return {
+          name: `${result.title}${result.prePurchase ? ' (Pre-Purchase)' : ''} (${offersDictionary[result.offerType] ?? result.offerType})${suffix}`,
+          value: result.id,
+        };
+      })
     );
   },
 };
