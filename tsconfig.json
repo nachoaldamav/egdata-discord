@@ -4,6 +4,8 @@
     "outDir": "dist",
     "rootDir": "src",
     // Use typescript as the compiler
-    "incremental": true
-  }
+    "incremental": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"]
+  },
+  "include": ["src/**/*"]
 }
