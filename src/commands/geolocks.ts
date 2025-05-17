@@ -100,7 +100,7 @@ export class GeolockCommand extends BaseCommand {
     });
   }
 
-  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+  override async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const query = focusedValue?.value || '';
 

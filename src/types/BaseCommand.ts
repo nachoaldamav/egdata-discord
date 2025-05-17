@@ -13,6 +13,6 @@ export abstract class BaseCommand {
 
     abstract execute(interaction: CommandInteraction): Promise<void>;
 
-    // Optional autocomplete method - only implement if needed
-    abstract autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
+    // Make autocomplete optional
+    autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
 } 

@@ -95,7 +95,7 @@ export class ItemsCommand extends BaseCommand {
     });
   }
 
-  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+  override async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const focusedValue = interaction.options.get('query');
     const type = interaction.options.get('type');
     const query = focusedValue?.value || '';
