@@ -27,7 +27,13 @@ export default {
             option
                 .setName('slug')
                 .setDescription('The offer slug to regenerate.')
-                .setRequired(true)
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName('id')
+                .setDescription('The offer id to regenerate.')
+                .setRequired(false)
         ),
 
     async execute(interaction: CommandInteraction) {
@@ -47,22 +53,31 @@ export default {
         }
 
         const slug = interaction.options.get('slug')?.value?.toString();
+        const id = interaction.options.get('id')?.value?.toString();
 
         console.log(`Slug: ${slug}`);
+        console.log(`ID: ${id}`);
 
-        if (!slug) {
+        if (!slug && !id) {
             return interaction.reply({
-                content: 'Please provide a valid offer slug.',
+                content: 'Please provide a valid offer slug or id.',
                 ephemeral: true,
             });
         }
 
         try {
-            console.log(`Regenerating offer: ${slug}`);
-            console.log(`Making request to: /offers/regen/${slug}`);
+            const target = id || slug;
+
+            console.log(`Regenerating offer: ${target}`);
+
+            const url = id
+                ? `/offers/regen-by-id/${target}`
+                : `/offers/regen/${target}`
+
+            console.log(`Making request to: ${url}`);
 
             // Make request to your API to regenerate the offer
-            const response = await client.put<{ message: string }>(`/offers/regen/${slug}`).catch((error) => {
+            const response = await client.put<{ message: string }>(url).catch((error) => {
                 console.error('Request failed:', error);
                 throw error;
             });
@@ -71,7 +86,7 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setTitle('Offer Regeneration')
-                .setDescription(response.data.message || `Successfully triggered regeneration for offer: ${slug}`)
+                .setDescription(response.data.message || `Successfully triggered regeneration for offer: ${target}`)
                 .setColor(0x00ff00)
                 .setTimestamp();
 
