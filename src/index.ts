@@ -8,12 +8,15 @@ import {
   ActivityType,
   ChatInputCommandInteraction,
   AutocompleteInteraction,
+  inlineCode,
 } from 'discord.js';
 import { token, healthCheckPort } from './config.js';
 import { fileURLToPath } from 'node:url';
 import { Command } from './types/command.js';
 import { setupHealthCheckServer } from './utils/healthCheck.js';
 import { logger } from './utils/logger.js';
+import consola from 'consola';
+import { client as apiClient } from './utils/client.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -111,6 +114,46 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await handleCommand(interaction);
   } else if (interaction.isAutocomplete()) {
     await handleAutocomplete(interaction);
+  }
+});
+
+// Handle bot mentions
+client.on(Events.MessageCreate, async (message) => {
+  consola.trace('Message created:', message.content);
+  // Check if the message mentions the bot
+  if (message.mentions.has(client.user!)) {
+    consola.debug('Regenerate command received:', message);
+    if (message.reference) {
+      const originalMessage = await message.channel.messages.fetch(message.reference.messageId as string);
+      consola.debug('Original message:', originalMessage.content);
+      // Epic Games Store URL pattern
+      const epicStoreRegex = /https?:\/\/(?:www\.)?store\.epicgames\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?p\/[a-zA-Z0-9-]+/g;
+
+      const matches = originalMessage.content.match(epicStoreRegex);
+      if (matches) {
+        const url = new URL(matches[0]);
+        consola.debug('URL:', url);
+
+        // Extract the slug from the pathname
+        const pathSegments = url.pathname.split('/');
+        const pIndex = pathSegments.indexOf('p');
+        if (pIndex !== -1 && pathSegments[pIndex + 1]) {
+          const slug = pathSegments[pIndex + 1];
+          if (slug) {
+            consola.info('Product slug:', slug);
+
+            await apiClient.put<{ message: string }>(`/offers/regen/${slug}`).catch((error) => {
+              console.error('Request failed:', error);
+              throw error;
+            });
+
+            await message.reply({
+              content: `🚀 Recieved request to regenerate offer for slug ${inlineCode(slug as string)}`,
+            });
+          }
+        }
+      }
+    }
   }
 });
 
