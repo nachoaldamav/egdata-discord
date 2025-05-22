@@ -27,6 +27,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildMessageReactions,
   ],
 });
 
@@ -118,6 +119,36 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 // Handle bot mentions
+async function processEpicGamesUrl(message: string) {
+  consola.debug('Processing message:', message);
+  // Epic Games Store URL pattern
+  const epicStoreRegex = /https?:\/\/(?:store\.)?epicgames\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?(?:p|product)\/[a-zA-Z0-9-]+/g;
+
+  const matches = message.match(epicStoreRegex);
+  if (matches) {
+    const url = new URL(matches[0]);
+    consola.debug('URL:', url);
+
+    // Extract the slug from the pathname
+    const pathSegments = url.pathname.split('/');
+    const pIndex = pathSegments.findIndex(segment => segment === 'p' || segment === 'product');
+    if (pIndex !== -1 && pathSegments[pIndex + 1]) {
+      const slug = pathSegments[pIndex + 1];
+      if (slug) {
+        consola.info('Product slug:', slug);
+
+        await apiClient.put<{ message: string }>(`/offers/regen/${slug}`).catch((error) => {
+          console.error('Request failed:', error);
+          throw error;
+        });
+
+        return slug;
+      }
+    }
+  }
+  return null;
+}
+
 client.on(Events.MessageCreate, async (message) => {
   consola.trace('Message created:', message.content);
   // Check if the message mentions the bot
@@ -125,34 +156,41 @@ client.on(Events.MessageCreate, async (message) => {
     consola.debug('Regenerate command received:', message);
     if (message.reference) {
       const originalMessage = await message.channel.messages.fetch(message.reference.messageId as string);
-      consola.debug('Original message:', originalMessage.content);
-      // Epic Games Store URL pattern
-      const epicStoreRegex = /https?:\/\/(?:store\.)?epicgames\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?(?:p|product)\/[a-zA-Z0-9-]+/g;
-
-      const matches = originalMessage.content.match(epicStoreRegex);
-      if (matches) {
-        const url = new URL(matches[0]);
-        consola.debug('URL:', url);
-
-        // Extract the slug from the pathname
-        const pathSegments = url.pathname.split('/');
-        const pIndex = pathSegments.findIndex(segment => segment === 'p' || segment === 'product');
-        if (pIndex !== -1 && pathSegments[pIndex + 1]) {
-          const slug = pathSegments[pIndex + 1];
-          if (slug) {
-            consola.info('Product slug:', slug);
-
-            await apiClient.put<{ message: string }>(`/offers/regen/${slug}`).catch((error) => {
-              console.error('Request failed:', error);
-              throw error;
-            });
-
-            await message.reply({
-              content: `🚀 Received request to regenerate offer for slug ${inlineCode(slug as string)}`,
-            });
-          }
-        }
+      const slug = await processEpicGamesUrl(originalMessage.content);
+      if (slug) {
+        await message.reply({
+          content: `🚀 Received request to regenerate offer for slug ${inlineCode(slug)}`,
+        });
       }
+    }
+  }
+});
+
+client.on(Events.MessageReactionAdd, async (reaction, user) => {
+  // Handle partial reactions
+  if (reaction.partial) {
+    try {
+      await reaction.fetch();
+    } catch (error) {
+      logger.error('Error fetching reaction:', error);
+      return;
+    }
+  }
+
+  logger.info('Reaction added:', {
+    emoji: reaction.emoji.name,
+    userId: user.id,
+    messageId: reaction.message.id
+  });
+
+  // If someone adds a reaction with the emoji `<:EGData:1263952305485779106>`, do the same as the reply in the message
+  if (reaction.emoji.name === 'EGData') {
+    const message = await reaction.message.fetch();
+    const slug = await processEpicGamesUrl(message.content);
+    if (slug) {
+      await message.reply({
+        content: `🚀 Received request to regenerate offer for slug ${inlineCode(slug)}`,
+      });
     }
   }
 });
