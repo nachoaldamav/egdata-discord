@@ -186,11 +186,17 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
   // If someone adds a reaction with the emoji `<:EGData:1263952305485779106>`, do the same as the reply in the message
   if (reaction.emoji.name === 'EGData') {
     const message = await reaction.message.fetch();
+
+    // Check if the message already has a checkmark reaction
+    const checkmarkReaction = message.reactions.cache.find(r => r.emoji.name === '✅');
+    if (checkmarkReaction) {
+      logger.info('Message already has a checkmark reaction, skipping regeneration');
+      return;
+    }
+
     const slug = await processEpicGamesUrl(message.content);
     if (slug) {
-      await message.reply({
-        content: `🚀 Received request to regenerate offer for slug ${inlineCode(slug)}`,
-      });
+      await message.react('✅');
     }
   }
 });
