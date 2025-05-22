@@ -127,7 +127,7 @@ client.on(Events.MessageCreate, async (message) => {
       const originalMessage = await message.channel.messages.fetch(message.reference.messageId as string);
       consola.debug('Original message:', originalMessage.content);
       // Epic Games Store URL pattern
-      const epicStoreRegex = /https?:\/\/(?:www\.)?store\.epicgames\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?p\/[a-zA-Z0-9-]+/g;
+      const epicStoreRegex = /https?:\/\/(?:store\.)?epicgames\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?(?:p|product)\/[a-zA-Z0-9-]+/g;
 
       const matches = originalMessage.content.match(epicStoreRegex);
       if (matches) {
@@ -148,7 +148,7 @@ client.on(Events.MessageCreate, async (message) => {
             });
 
             await message.reply({
-              content: `🚀 Recieved request to regenerate offer for slug ${inlineCode(slug as string)}`,
+              content: `🚀 Received request to regenerate offer for slug ${inlineCode(slug as string)}`,
             });
           }
         }
