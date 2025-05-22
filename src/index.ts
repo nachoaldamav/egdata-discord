@@ -136,7 +136,7 @@ client.on(Events.MessageCreate, async (message) => {
 
         // Extract the slug from the pathname
         const pathSegments = url.pathname.split('/');
-        const pIndex = pathSegments.indexOf('p');
+        const pIndex = pathSegments.findIndex(segment => segment === 'p' || segment === 'product');
         if (pIndex !== -1 && pathSegments[pIndex + 1]) {
           const slug = pathSegments[pIndex + 1];
           if (slug) {
